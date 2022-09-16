@@ -88,5 +88,5 @@ if have_smtp_interface == 0:
     
 
 # add the template
-zapi.template.massadd(templates={"templateid": templateIdValue},hosts={"hostid": hostIdValue});
+zapi.host.massadd(templates={"templateid": templateIdValue},hosts={"hostid": hostIdValue});
 
