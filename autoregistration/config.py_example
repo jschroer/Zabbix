@@ -1,0 +1,7 @@
+# The hostname at which the Zabbix web interface is available
+ZABBIX_SERVER = 'http://<FQDN>'
+
+# credentials of the API User
+API_USER = 'apiuser'
+API_PASSWORT = 'apipasswd'
+
