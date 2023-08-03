@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Set host inventory to automatic.
+Add a SNMP template to a existing host, if no SNMP interface exist it will create one
 """
 
 from pyzabbix import ZabbixAPI
@@ -18,11 +18,9 @@ log.addHandler(stream)
 log.setLevel(logging.ERROR)
 
 
+# login into Zabbix API
 zapi = ZabbixAPI(ZABBIX_SERVER)
-
-
-# Enable HTTP auth
-zapi.session.auth = ("http user", "http password")
+zapi.login(API_USER,API_PASSWORT)
 
 # Disable SSL certificate verification
 zapi.session.verify = False
@@ -32,15 +30,8 @@ zapi.timeout = 5.1
 
 
 
-# Login to the Zabbix API
-zapi.login(API_USER,API_PASSWORT)
-
-# You can also authenticate using an API token instead of user/pass with Zabbix >= 5.4
-# zapi.login(api_token='xxxxx')
-
-
 #search the host we will modify
-host = zapi.host.get(filter={'host':client_hostname},selectInterfaces="extend",limit=4 )
+host = zapi.host.get(filter={'host':client_hostname},selectInterfaces="extend",limit=4)
 
 # get the hostID into separate variable
 hostIdValue = host[0]['hostid']
@@ -51,42 +42,45 @@ templ = zapi.template.get(filter={'host':template},limit=4 )
 
 # is the template found?
 if len(templ) < 1:
-  # template doesn't exists, we can stop here
-  exit()
+   # template doesn't exists, we can stop here
+   exit()
 else:
-  templateIdValue = templ[0]['templateid']
+   templateIdValue = templ[0]['templateid']
 
-# just a flag to see if there is already a smtp interface, filed in the following loop
-have_smtp_interface = 0
+# just a flag to see if there is already a snmp interface, filed in the following loop
 
+have_snmp_interface = 0
 # loop over interfaces and search for an SNMP interface
 for interface in host[0]['interfaces']:
-   if interface['main'] == "1" and interface['type'] == "2":
-     have_smtp_interface =1
+    if interface['main'] == "1" and interface['type'] == "2":
+      have_snmp_interface =1
 
 
-# if there exist no smtp interface than let create one
-if have_smtp_interface == 0:
+# if there exist no snmp interface than let create one
+if have_snmp_interface == 0:
   # loop over interfaces and search for the standart agent interface as template
   for interface in host[0]['interfaces']:
-    if interface['main'] == "1" and interface['type'] == "1":
-      # found, lets create a SNMP Interface
-      new_interface= {}
-      new_interface['main']   = "1"
-      new_interface['hostid'] = hostIdValue
-      new_interface['type']   = "2"
-      new_interface['useip']  = interface['useip']
-      new_interface['ip']     = interface['ip']
-      new_interface['dns']    = interface['dns']
-      new_interface['port']   = "161"
+     if interface['main'] == "1" and interface['type'] == "1":
+       # found, lets create a SNMP Interface
+       new_interface= {}
+       new_interface['main']   = "1"
+       new_interface['hostid'] = hostIdValue
+       new_interface['type']   = "2"
+       new_interface['useip']  = interface['useip']
+       new_interface['ip']     = interface['ip']
+       new_interface['dns']    = interface['dns']
+       new_interface['port']   = "161"
+#       new_interface['port']   = "3401"
 
-      new_interface['details']={}
-      new_interface['details']['version'] = "2"
-      new_interface['details']['bulk'] = "1"
-      new_interface['details']['community'] = "{$SNMP_COMMUNITY}"
-      zapi.hostinterface.create(new_interface)
-    
+
+       new_interface['details']={}
+       new_interface['details']['version'] = "2"
+       new_interface['details']['bulk'] = "1"
+       new_interface['details']['community'] = "{$SNMP_COMMUNITY}"
+       zapi.hostinterface.create(new_interface)
+
 
 # add the template
-zapi.host.massadd(templates={"templateid": templateIdValue},hosts={"hostid": hostIdValue});
+#zapi.templates.massadd(templates={"templateid":templateIdValue},hosts={"hostid": hostIdValue});
+zapi.host.massadd(templates={"templateid":templateIdValue},hosts={"hostid": hostIdValue});
 
